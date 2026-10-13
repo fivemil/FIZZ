@@ -3,7 +3,7 @@
 @@ -20,7 +20,8 @@ inline constexpr int64_t MAX_BLOCK_SIGOPS_COST{80'000};
  /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
 -inline constexpr int COINBASE_MATURITY = 100;
-+// Thirteen is the wizard's favorite number. Coins must contemplate the ledger for 13 blocks.
-+inline constexpr int COINBASE_MATURITY = 13;
++// 20 blocks (~40 minutes at 2-min spacing). Bitcoin's 100 is pure friction for no good reason on a live chain.
++inline constexpr int COINBASE_MATURITY = 20;
  
  inline constexpr int WITNESS_SCALE_FACTOR = 4;

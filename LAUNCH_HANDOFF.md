@@ -16,16 +16,16 @@ People may do with the coins as they will. This is **not** a monetary product an
 git fetch origin
 git checkout mainnet-launch
 
-# 1. Restore full original chainparams, then apply Fizzlewick identity + 2-min blocks
+# 1. Mainnet identity + 2-minute blocks
 git checkout master -- src/kernel/chainparams.cpp
 git apply patches/fizzlewick_mainnet.patch
 
-# 2. Apply the hilarious maturity change
+# 2. Coinbase maturity 20 (real UX improvement)
 git apply patches/fizzlewick_maturity.patch
 
 # Commit
 git add src/kernel/chainparams.cpp src/consensus/consensus.h
-git commit -m "mainnet: Fizzlewick identity, 2-min blocks, maturity 13"
+git commit -m "mainnet: Fizzlewick identity, 2-min blocks, maturity 20"
 ```
 
 Then build and run (sections 3–6).
@@ -39,7 +39,7 @@ Then build and run (sections 3–6).
 | Poetic subsidy | Already on master |
 | Docs | Updated on this branch |
 | Mainnet identity + 2-min blocks | `patches/fizzlewick_mainnet.patch` |
-| Coinbase maturity = 13 | `patches/fizzlewick_maturity.patch` |
+| Coinbase maturity = 20 | `patches/fizzlewick_maturity.patch` |
 | Binary rename | Optional |
 | Public seeds / explorer | Post-launch |
 
@@ -47,20 +47,23 @@ Then build and run (sections 3–6).
 
 ---
 
-## 2. The two improvements
+## 2. The two real improvements over Bitcoin
 
 ### A. 2-minute blocks
-`nPowTargetSpacing = 2 * 60`  
-The wick burns faster. Confirmations in minutes instead of tens of minutes.
-
-### B. Coinbase maturity = 13 (hilarious simplicity)
 ```cpp
-// Thirteen is the wizard's favorite number. Coins must contemplate the ledger for 13 blocks.
-inline constexpr int COINBASE_MATURITY = 13;
+consensus.nPowTargetSpacing = 2 * 60;  // the wick burns faster
 ```
-Bitcoin makes you wait 100 blocks (~16 hours).  
-Fizzlewick makes you wait 13 blocks (~26 minutes).  
-The wizard has spoken.
+Confirmations in minutes instead of tens of minutes.  
+Testing, mining, and everyday use stop feeling like watching paint dry.
+
+### B. Coinbase maturity = 20
+```cpp
+// 20 blocks (~40 minutes at 2-min spacing). Bitcoin's 100 is pure friction for no good reason on a live chain.
+inline constexpr int COINBASE_MATURITY = 20;
+```
+Bitcoin forces ~16 hours of waiting before newly mined coins can be spent.  
+Fizzlewick: ~40 minutes. Same security model for a test platform, dramatically better UX.  
+Hilarious in its simplicity — just change one constant and the chain becomes usable.
 
 ---
 
@@ -104,11 +107,11 @@ fallbackfee=0.0001
 
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick createwallet "wizard"
 ADDR=$(./fizzlewick-cli -datadir=$HOME/.fizzlewick getnewaddress)
-./fizzlewick-cli -datadir=$HOME/.fizzlewick generatetoaddress 20 "$ADDR"
+./fizzlewick-cli -datadir=$HOME/.fizzlewick generatetoaddress 25 "$ADDR"
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick getbalance
 ```
 
-(After 13 blocks the coinbase becomes spendable.)
+(After 20 blocks the coinbase becomes spendable.)
 
 ---
 
@@ -127,7 +130,7 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 | Name | Fizzlewick |
 | Ticker | FIZZ |
 | Block time | **2 minutes** |
-| Coinbase maturity | **13 blocks** |
+| Coinbase maturity | **20 blocks** |
 | Magic | `f1 7a 7a 1f` |
 | P2P port | 8337 |
 | RPC port | 8336 |
@@ -142,8 +145,8 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 - [ ] Compiles
 - [ ] `getblockchaininfo` → `"chain": "main"`
 - [ ] Addresses start with `fizz1...`
-- [ ] New blocks appear ~ every 2 minutes under load
-- [ ] Coinbase spendable after 13 blocks
+- [ ] New blocks ~ every 2 minutes under load
+- [ ] Coinbase spendable after 20 blocks
 - [ ] tpool receives work
 
 ---
@@ -159,4 +162,4 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 
 **Handoff complete.**  
 Two patches → build → launch.  
-The wick burns faster. Thirteen is the number.
+The wick burns faster. Twenty is enough.
