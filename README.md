@@ -1,79 +1,67 @@
-Bitcoin Core integration/staging tree
-=====================================
+# Fizzlewick (FIZZ)
 
-https://bitcoincore.org
+A durable Bitcoin-family test chain kept alive for ongoing work on [tpool](https://github.com/5mil/tpool) and other projects.  
+Straight clone of Bitcoin Core. **Strong, generally basic, intentionally un-fancy.**
 
-For an immediately usable, binary version of the Bitcoin Core software, see
-https://bitcoincore.org/en/download/.
+Mined by tpool on sha256d / port 3333. Not a monetary product and not an investment.
 
-What is Bitcoin Core?
----------------------
+*"Lo, another ledger of flickering wicks. Mine if you must, but mind the smoke."*  
+— some second-rate ancient wizard, probably
 
-Bitcoin Core connects to the Bitcoin peer-to-peer network to download and fully
-validate blocks and transactions. It also includes a wallet and graphical user
-interface, which can be optionally built.
+## What this is
 
-Further information about Bitcoin Core is available in the [doc folder](/doc).
+| Item | Value |
+|------|--------|
+| **Name** | Fizzlewick |
+| **Ticker** | FIZZ |
+| **Role** | Long-lived test / play / integration chain |
+| **PoW** | sha256d |
+| **Architecture** | Straight Bitcoin Core fork. UTXO, headers, RPC shape preserved |
+| **Datadir** | `fizzlewick` |
+| **Ports (regtest)** | P2P 18445, RPC 18446 |
 
-License
--------
+Subsidy is **not** pure halvings — see poetic schedule below.
 
-Bitcoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
-information or see https://opensource.org/license/MIT.
+## Design stance
 
-Development Process
--------------------
+- **Strong but basic.** Reliable Bitcoin-family consensus, clear RPC, ordinary sha256d.
+- **Perpetual for testing.** Live tests beat spinning up ephemeral regtest every time.
+- **Transparent ledger.** Same spirit as tpool.
+- **No value claims.** Engineering target, not speculation.
 
-The `master` branch is regularly built (see `doc/build-*.md` for instructions) and tested, but it is not guaranteed to be
-completely stable. [Tags](https://github.com/bitcoin/bitcoin/tags) are created
-regularly from release branches to indicate new official, stable release versions of Bitcoin Core.
+## Poetic subsidy
 
-The https://github.com/bitcoin-core/gui repository is used exclusively for the
-development of the GUI. Its master branch is identical in all monotree
-repositories. Release branches and tags do not exist, so please do not fork
-that repository unless it is for development reasons.
+One function: `GetBlockSubsidy` in `src/validation.cpp`.
 
-The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md)
-and useful hints for developers can be found in [doc/developer-notes.md](doc/developer-notes.md).
+- Base 50 FIZZ  
+- Triangle-wave ±20 FIZZ, period 2100 blocks  
+- Slow integer decay (~5% every 100 000 blocks)  
+- Pure integer sats; no float consensus math  
 
-Testing
--------
+| height | approx FIZZ |
+|--------|-------------|
+| 0 | 30 |
+| 1050 | 70 |
+| 2100 | 30 |
+| 100000 | ~58 |
+| 210000 | ~25 |
 
-Testing and code review is the bottleneck for development; we get more pull
-requests than we can review and test on short notice. Please be patient and help out by testing
-other people's pull requests, and remember this is a security-critical project where any mistake might cost people
-lots of money.
+Apply with the snippet in `GetBlockSubsidy.snippet.cpp` (or the patch in this commit if validation.cpp was updated).
 
-### Automated Testing
+## Launch
 
-Developers are strongly encouraged to write [unit tests](src/test/README.md) for new code, and to
-submit new unit tests for old code. Unit tests can be compiled and run
-(assuming they weren't disabled during the generation of the build system) with: `ctest`. Further details on running
-and extending unit tests can be found in [/src/test/README.md](/src/test/README.md).
+See **LAUNCH.md** for conf, start, mine, and the exact tpool EXTERNAL RPC line.
 
-There are also [regression and integration tests](/test), written
-in Python.
-These tests can be run (if the [test dependencies](/test) are installed) with: `build/test/functional/test_runner.py`
-(assuming `build` is your build directory).
+```
+http://fizz:wick-of-the-ancients@127.0.0.1:18446
+```
 
-The CI (Continuous Integration) systems make sure that every pull request is tested on Windows, Linux, and macOS.
-The CI must pass on all commits before merge to avoid unrelated CI failures on new pull requests.
+## Build
 
-### Manual Quality Assurance (QA) Testing
+```bash
+cmake -B build -DBUILD_GUI=OFF -DWITH_ZMQ=OFF
+cmake --build build -j$(nproc)
+# then rename/symlink bitcoind → fizzlewickd as desired
+```
 
-Changes should be tested by somebody other than the developer who wrote the
-code. This is especially important for large or high-risk changes. It is useful
-to add a test plan to the pull request description if testing the changes is
-not straightforward.
-
-Translations
-------------
-
-Changes to translations as well as new translations can be submitted to
-[Bitcoin Core's Transifex page](https://explore.transifex.com/bitcoin/bitcoin/).
-
-Translations are periodically pulled from Transifex and merged into the git repository. See the
-[translation process](doc/translation_process.md) for details on how this works.
-
-**Important**: We do not accept translation changes as GitHub pull requests because the next
-pull from Transifex would automatically overwrite them again.
+The wick stays lit. The hash remains.
