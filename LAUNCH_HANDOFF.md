@@ -15,14 +15,20 @@ People may do with the coins as they will. This is **not** a monetary product an
 ```bash
 git fetch origin
 git checkout mainnet-launch
+
+# 1. Restore full original chainparams, then apply Fizzlewick identity + 2-min blocks
 git checkout master -- src/kernel/chainparams.cpp
 git apply patches/fizzlewick_mainnet.patch
-# verify it applied cleanly, then:
-git add src/kernel/chainparams.cpp
-git commit -m "mainnet: apply Fizzlewick chainparams"
+
+# 2. Apply the hilarious maturity change
+git apply patches/fizzlewick_maturity.patch
+
+# Commit
+git add src/kernel/chainparams.cpp src/consensus/consensus.h
+git commit -m "mainnet: Fizzlewick identity, 2-min blocks, maturity 13"
 ```
 
-Then build and run (sections 3–6 below).
+Then build and run (sections 3–6).
 
 ---
 
@@ -30,10 +36,10 @@ Then build and run (sections 3–6 below).
 
 | Item | Status |
 |------|--------|
-| Poetic subsidy (`GetBlockSubsidy`) | Already on master |
-| Docs (README / LAUNCH / FIZZLEWICK) | Updated on this branch |
-| Mainnet identity changes | Clean patch ready |
-| Patch file | `patches/fizzlewick_mainnet.patch` |
+| Poetic subsidy | Already on master |
+| Docs | Updated on this branch |
+| Mainnet identity + 2-min blocks | `patches/fizzlewick_mainnet.patch` |
+| Coinbase maturity = 13 | `patches/fizzlewick_maturity.patch` |
 | Binary rename | Optional |
 | Public seeds / explorer | Post-launch |
 
@@ -41,32 +47,20 @@ Then build and run (sections 3–6 below).
 
 ---
 
-## 2. Apply the chainparams fix
+## 2. The two improvements
 
-```bash
-git checkout mainnet-launch
-git checkout master -- src/kernel/chainparams.cpp   # restore full original
-git apply patches/fizzlewick_mainnet.patch          # apply Fizzlewick changes
+### A. 2-minute blocks
+`nPowTargetSpacing = 2 * 60`  
+The wick burns faster. Confirmations in minutes instead of tens of minutes.
+
+### B. Coinbase maturity = 13 (hilarious simplicity)
+```cpp
+// Thirteen is the wizard's favorite number. Coins must contemplate the ledger for 13 blocks.
+inline constexpr int COINBASE_MATURITY = 13;
 ```
-
-The patch only touches `CMainParams` and the shared genesis timestamp.  
-All other networks (TestNet, RegTest, SigNet) and factory functions remain intact.
-
-### What the patch changes
-
-| Item | Value |
-|------|--------|
-| Genesis timestamp | Wizard line |
-| Magic bytes | `f1 7a 7a 1f` |
-| Default P2P port | `8337` |
-| bech32 HRP | `fizz` |
-| Address prefixes | Distinct (not Bitcoin) |
-| Initial difficulty | Easy (`0x207fffff`) — nonce 0 works |
-| BIP activation | From height 1 |
-| Seeds / assumeutxo / min-chainwork | Cleared |
-| `fPowAllowMinDifficultyBlocks` | `true` |
-
-After applying, commit the result on this branch (or open a PR to master).
+Bitcoin makes you wait 100 blocks (~16 hours).  
+Fizzlewick makes you wait 13 blocks (~26 minutes).  
+The wizard has spoken.
 
 ---
 
@@ -76,7 +70,6 @@ After applying, commit the result on this branch (or open a PR to master).
 cmake -B build -DBUILD_GUI=OFF -DWITH_ZMQ=OFF
 cmake --build build -j$(nproc)
 
-# Optional but recommended
 cp build/src/bitcoind    build/src/fizzlewickd
 cp build/src/bitcoin-cli build/src/fizzlewick-cli
 ```
@@ -85,7 +78,7 @@ cp build/src/bitcoin-cli build/src/fizzlewick-cli
 
 ## 4. Mainnet config
 
-Create `~/.fizzlewick/fizzlewick.conf`:
+`~/.fizzlewick/fizzlewick.conf`:
 
 ```
 server=1
@@ -96,10 +89,9 @@ port=8337
 daemon=1
 txindex=1
 fallbackfee=0.0001
-# addnode=YOUR.PUBLIC.NODE.IP
 ```
 
-**Do not** set `regtest=1`.
+**No** `regtest=1`.
 
 ---
 
@@ -112,9 +104,11 @@ fallbackfee=0.0001
 
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick createwallet "wizard"
 ADDR=$(./fizzlewick-cli -datadir=$HOME/.fizzlewick getnewaddress)
-./fizzlewick-cli -datadir=$HOME/.fizzlewick generatetoaddress 100 "$ADDR"
+./fizzlewick-cli -datadir=$HOME/.fizzlewick generatetoaddress 20 "$ADDR"
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick getbalance
 ```
+
+(After 13 blocks the coinbase becomes spendable.)
 
 ---
 
@@ -124,8 +118,6 @@ ADDR=$(./fizzlewick-cli -datadir=$HOME/.fizzlewick getnewaddress)
 http://fizz:wick-of-the-ancients@127.0.0.1:8336
 ```
 
-Stratum on port 3333 works once the node is serving templates.
-
 ---
 
 ## 7. Network parameters
@@ -134,39 +126,29 @@ Stratum on port 3333 works once the node is serving templates.
 |-----------|--------|
 | Name | Fizzlewick |
 | Ticker | FIZZ |
-| Role | Public mainnet test platform |
-| PoW | sha256d |
+| Block time | **2 minutes** |
+| Coinbase maturity | **13 blocks** |
 | Magic | `f1 7a 7a 1f` |
 | P2P port | 8337 |
 | RPC port | 8336 |
 | bech32 | `fizz` |
-| Datadir | `fizzlewick` |
-| Subsidy | Poetic (base 50 ±20 triangle, period 2100 + slow decay) |
+| Subsidy | Poetic (triangle ±20 + slow decay) |
 
 ---
 
 ## 8. Verification checklist
 
-- [ ] `git apply patches/fizzlewick_mainnet.patch` succeeds with no rejects
-- [ ] Project compiles cleanly
-- [ ] Node starts without `-regtest`
+- [ ] Both patches apply cleanly
+- [ ] Compiles
 - [ ] `getblockchaininfo` → `"chain": "main"`
-- [ ] New addresses begin with `fizz1...`
-- [ ] Blocks can be generated and balance increases
-- [ ] tpool connects and receives work
+- [ ] Addresses start with `fizz1...`
+- [ ] New blocks appear ~ every 2 minutes under load
+- [ ] Coinbase spendable after 13 blocks
+- [ ] tpool receives work
 
 ---
 
-## 9. Optional follow-ups
-
-- Rename binaries / man pages to `fizzlewickd` / `fizzlewick-cli`
-- Add public seed nodes and DNS seeds
-- Re-mine a harder genesis if desired
-- Simple block explorer
-
----
-
-## 10. Design stance (do not change)
+## 9. Design stance (do not change)
 
 - Strong but basic Bitcoin-family consensus
 - Public test / play / integration platform
@@ -176,5 +158,5 @@ Stratum on port 3333 works once the node is serving templates.
 ---
 
 **Handoff complete.**  
-Apply the patch → build → launch.  
-Questions → repo owner (5mil).
+Two patches → build → launch.  
+The wick burns faster. Thirteen is the number.
