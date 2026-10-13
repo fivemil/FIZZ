@@ -1832,16 +1832,40 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
-    // Force block reward to zero when right shift is undefined.
-    if (halvings >= 64)
-        return 0;
+    // Fizzlewick poetic subsidy — integer only, one clear function.
+    //
+    // A second-rate ancient wizard's reward: base 50 FIZZ that gently
+    // rises and falls like a mumbled verse (triangle wave, period 2100
+    // blocks) with amplitude 20 FIZZ, plus a slow long-term fade
+    // (~5% every 100 000 blocks) so the spell eventually peters out.
+    // No floating point. Auditable in one place.
+    //
+    // Sample (sats): h=0 → 30e8, h=1050 → 70e8, h=2100 → 30e8, ...
+    // See LAUNCH.md for the printed schedule.
 
-    CAmount nSubsidy = 50 * COIN;
-    // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
-    nSubsidy >>= halvings;
-    return nSubsidy;
+    const int PERIOD = 2100;
+    const CAmount BASE = 50 * COIN;
+    const CAmount AMP  = 20 * COIN;
+
+    // Slow decay
+    int epochs = nHeight / 100000;
+    CAmount base = BASE;
+    for (int i = 0; i < epochs && i < 40; ++i) {
+        base = (base * 19) / 20;
+    }
+
+    int phase = nHeight % PERIOD;
+    int half = PERIOD / 2;
+    int t = (phase <= half) ? phase : (PERIOD - phase);
+    CAmount wave = -AMP + (2 * AMP * static_cast<CAmount>(t)) / half;
+
+    CAmount subsidy = base + wave;
+    if (subsidy < 0) subsidy = 0;
+    // consensusParams is unused; kept for call-site compatibility
+    (void)consensusParams;
+    return subsidy;
 }
+
 
 CoinsViews::CoinsViews(DBParams db_params, CoinsViewOptions options)
     : m_dbview{std::move(db_params), std::move(options)},
