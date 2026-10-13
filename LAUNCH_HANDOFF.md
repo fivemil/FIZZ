@@ -23,12 +23,12 @@ git apply patches/fizzlewick_mainnet.patch
 # 2. Coinbase maturity 20
 git apply patches/fizzlewick_maturity.patch
 
-# 3. Abolish dust (the hilarious one)
+# 3. Lower dust threshold (playful, still anti-spam)
 git apply patches/fizzlewick_dust.patch
 
 # Commit
 git add src/kernel/chainparams.cpp src/consensus/consensus.h src/policy/policy.h
-git commit -m "mainnet: Fizzlewick — 2-min blocks, maturity 20, no dust"
+git commit -m "mainnet: Fizzlewick — 2-min blocks, maturity 20, sensible dust"
 ```
 
 Then build and run (sections 3–6).
@@ -43,7 +43,7 @@ Then build and run (sections 3–6).
 | Docs | Updated on this branch |
 | Mainnet identity + 2-min blocks | `patches/fizzlewick_mainnet.patch` |
 | Coinbase maturity = 20 | `patches/fizzlewick_maturity.patch` |
-| Dust abolished | `patches/fizzlewick_dust.patch` |
+| Dust threshold lowered | `patches/fizzlewick_dust.patch` |
 | Binary rename | Optional |
 | Public seeds / explorer | Post-launch |
 
@@ -65,15 +65,16 @@ Confirmations in minutes instead of tens of minutes.
 inline constexpr int COINBASE_MATURITY = 20;
 ```
 Bitcoin: ~16 hours before newly mined coins are spendable.  
-Fizzlewick: ~40 minutes. Same model, usable chain.
+Fizzlewick: ~40 minutes.
 
-### C. Dust abolished (the hilarious simple one)
+### C. Sensible low dust threshold
 ```cpp
-// Even the tiniest spark may light a wick. Dust is not refuse on this chain.
-inline constexpr unsigned int DUST_RELAY_TX_FEE{1};
+// Playful but not reckless. Far lower than Bitcoin, still high enough to make mass dusting expensive.
+inline constexpr unsigned int DUST_RELAY_TX_FEE{200};
 ```
-Bitcoin treats small outputs like toxic waste and rejects them.  
-Fizzlewick lets 1-sat outputs live. One constant. Suddenly the chain is actually fun to play with.
+Bitcoin’s effective dust limit is roughly 546 sats.  
+Fizzlewick’s is much lower (policy rate 200), so small playful amounts work, but flooding the UTXO set with tiny outputs is still costly.  
+`MAX_DUST_OUTPUTS_PER_TX = 1` remains in force.
 
 ---
 
@@ -139,7 +140,7 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 | Ticker | FIZZ |
 | Block time | **2 minutes** |
 | Coinbase maturity | **20 blocks** |
-| Dust relay fee | **1** (dust abolished) |
+| Dust relay fee | **200** (low but anti-spam) |
 | Magic | `f1 7a 7a 1f` |
 | P2P port | 8337 |
 | RPC port | 8336 |
@@ -156,7 +157,7 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 - [ ] Addresses start with `fizz1...`
 - [ ] Blocks ~ every 2 minutes under load
 - [ ] Coinbase spendable after 20 blocks
-- [ ] 1-sat outputs are accepted / relayed
+- [ ] Small outputs work; pure dust spam is still expensive
 - [ ] tpool receives work
 
 ---
@@ -172,4 +173,4 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 
 **Handoff complete.**  
 Three patches → build → launch.  
-The wick burns faster. Twenty is enough. Even the tiniest spark may light a wick.
+The wick burns faster. Twenty is enough. Playful, not reckless.

@@ -7,7 +7,7 @@
   * only increase the dust limit after prior releases were already not creating
   * outputs below the new threshold */
 -inline constexpr unsigned int DUST_RELAY_TX_FEE{3000};
-+// Even the tiniest spark may light a wick. Dust is not refuse on this chain.
-+inline constexpr unsigned int DUST_RELAY_TX_FEE{1};
++// Playful but not reckless. Far lower than Bitcoin, still high enough to make mass dusting expensive.
++inline constexpr unsigned int DUST_RELAY_TX_FEE{200};
  /** Default for -minrelaytxfee, minimum relay fee for transactions */
  inline constexpr unsigned int DEFAULT_MIN_RELAY_TX_FEE{100};
