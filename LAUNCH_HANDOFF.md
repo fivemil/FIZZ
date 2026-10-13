@@ -10,89 +10,72 @@ People may do with the coins as they will. This is **not** a monetary product an
 
 ---
 
-## Quick Start (copy-paste)
+## Quick Start
 
 ```bash
 git fetch origin
 git checkout mainnet-launch
 
-# 1. Mainnet identity + 2-minute blocks
 git checkout master -- src/kernel/chainparams.cpp
 git apply patches/fizzlewick_mainnet.patch
-
-# 2. Coinbase maturity 20
 git apply patches/fizzlewick_maturity.patch
-
-# 3. Lower dust threshold (playful, still anti-spam)
 git apply patches/fizzlewick_dust.patch
 
-# Commit
 git add src/kernel/chainparams.cpp src/consensus/consensus.h src/policy/policy.h
-git commit -m "mainnet: Fizzlewick — 2-min blocks, maturity 20, sensible dust"
+git commit -m "mainnet: Fizzlewick — 2-min blocks, 1-day retarget, maturity 20, sensible dust"
 ```
 
-Then build and run (sections 3–6).
+Then build and run (sections below).
 
 ---
 
-## 1. Current Status
+## Implemented Improvements (from the deep list)
 
-| Item | Status |
-|------|--------|
-| Poetic subsidy | Already on master |
-| Docs | Updated on this branch |
-| Mainnet identity + 2-min blocks | `patches/fizzlewick_mainnet.patch` |
-| Coinbase maturity = 20 | `patches/fizzlewick_maturity.patch` |
-| Dust threshold lowered | `patches/fizzlewick_dust.patch` |
-| Binary rename | Optional |
-| Public seeds / explorer | Post-launch |
-
-**Branch:** https://github.com/fivemil/FIZZ/tree/mainnet-launch
-
----
-
-## 2. The three real improvements over Bitcoin
-
-### A. 2-minute blocks
-```cpp
-consensus.nPowTargetSpacing = 2 * 60;  // the wick burns faster
-```
-Confirmations in minutes instead of tens of minutes.
-
-### B. Coinbase maturity = 20
-```cpp
-// 20 blocks (~40 minutes at 2-min spacing). Bitcoin's 100 is pure friction for no good reason on a live chain.
-inline constexpr int COINBASE_MATURITY = 20;
-```
-Bitcoin: ~16 hours before newly mined coins are spendable.  
-Fizzlewick: ~40 minutes.
-
-### C. Sensible low dust threshold
-```cpp
-// Playful but not reckless. Far lower than Bitcoin, still high enough to make mass dusting expensive.
-inline constexpr unsigned int DUST_RELAY_TX_FEE{200};
-```
-Bitcoin’s effective dust limit is roughly 546 sats.  
-Fizzlewick’s is much lower (policy rate 200), so small playful amounts work, but flooding the UTXO set with tiny outputs is still costly.  
-`MAX_DUST_OUTPUTS_PER_TX = 1` remains in force.
+| # | Improvement | Status | How |
+|---|-------------|--------|-----|
+| 1 | 2-minute blocks + faster difficulty adjustment | **Done** | `nPowTargetSpacing = 2*60`, `nPowTargetTimespan = 1 day` |
+| 2 | Coinbase maturity = 20 | **Done** | `COINBASE_MATURITY = 20` |
+| 3 | Easy bootstrap period | **Done** | `fPowAllowMinDifficultyBlocks = true` + easy genesis |
+| 4 | Explicit chain identity | **Done** | Unique magic `f1 7a 7a 1f`, bech32 `fizz`, distinct prefixes, wizard genesis message |
+| 5 | Reject non-standard earlier | Partial | Modern script flags from height 1; further tightening is future work |
+| 6 | Time-to-spendable awareness | Future | Wallet/RPC enhancement (not in these patches) |
+| 7 | Strict modern BIPs from height 1 | **Done** | BIP34/65/66/CSV/Segwit active at 1 |
+| 8 | Non-colliding names/ports/datadir | **Done** (docs + ports) | Port 8337/8336, datadir `fizzlewick`, recommended binary names |
+| 9 | No Bitcoin seeds — intentional networking | **Done** | All vSeeds and fixed seeds cleared |
+| 10 | Transparent poetic subsidy | **Done** (source) | Already in `GetBlockSubsidy`; surface more in RPC later |
 
 ---
 
-## 3. Build
+## Network Parameters
+
+| Parameter | Value |
+|-----------|--------|
+| Name | Fizzlewick |
+| Ticker | FIZZ |
+| Block time | **2 minutes** |
+| Difficulty retarget | **1 day** |
+| Coinbase maturity | **20 blocks** (~40 min) |
+| Dust relay fee | **200** (playful, still anti-spam) |
+| Magic | `f1 7a 7a 1f` |
+| P2P / RPC | 8337 / 8336 |
+| bech32 | `fizz` |
+| Seeds | None (use `addnode`) |
+| Subsidy | Poetic triangle ±20 + slow decay |
+
+---
+
+## Build
 
 ```bash
 cmake -B build -DBUILD_GUI=OFF -DWITH_ZMQ=OFF
 cmake --build build -j$(nproc)
-
 cp build/src/bitcoind    build/src/fizzlewickd
 cp build/src/bitcoin-cli build/src/fizzlewick-cli
 ```
 
 ---
 
-## 4. Mainnet config
-
-`~/.fizzlewick/fizzlewick.conf`:
+## Config (`~/.fizzlewick/fizzlewick.conf`)
 
 ```
 server=1
@@ -103,19 +86,18 @@ port=8337
 daemon=1
 txindex=1
 fallbackfee=0.0001
+# addnode=YOUR.PUBLIC.NODE.IP
 ```
 
 **No** `regtest=1`.
 
 ---
 
-## 5. First launch & mine
+## First Launch
 
 ```bash
 ./fizzlewickd -datadir=$HOME/.fizzlewick -conf=$HOME/.fizzlewick/fizzlewick.conf
-
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick getblockchaininfo
-
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick createwallet "wizard"
 ADDR=$(./fizzlewick-cli -datadir=$HOME/.fizzlewick getnewaddress)
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick generatetoaddress 25 "$ADDR"
@@ -124,7 +106,7 @@ ADDR=$(./fizzlewick-cli -datadir=$HOME/.fizzlewick getnewaddress)
 
 ---
 
-## 6. Mining / tpool
+## Mining / tpool
 
 ```
 http://fizz:wick-of-the-ancients@127.0.0.1:8336
@@ -132,37 +114,21 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 
 ---
 
-## 7. Network parameters
-
-| Parameter | Value |
-|-----------|--------|
-| Name | Fizzlewick |
-| Ticker | FIZZ |
-| Block time | **2 minutes** |
-| Coinbase maturity | **20 blocks** |
-| Dust relay fee | **200** (low but anti-spam) |
-| Magic | `f1 7a 7a 1f` |
-| P2P port | 8337 |
-| RPC port | 8336 |
-| bech32 | `fizz` |
-| Subsidy | Poetic (triangle ±20 + slow decay) |
-
----
-
-## 8. Verification checklist
+## Verification Checklist
 
 - [ ] All three patches apply cleanly
 - [ ] Compiles
 - [ ] `getblockchaininfo` → `"chain": "main"`
 - [ ] Addresses start with `fizz1...`
-- [ ] Blocks ~ every 2 minutes under load
+- [ ] Blocks arrive ~ every 2 minutes
+- [ ] Difficulty can adjust after ~1 day of blocks
 - [ ] Coinbase spendable after 20 blocks
-- [ ] Small outputs work; pure dust spam is still expensive
+- [ ] No Bitcoin seeds present
 - [ ] tpool receives work
 
 ---
 
-## 9. Design stance (do not change)
+## Design Stance
 
 - Strong but basic Bitcoin-family consensus
 - Public test / play / integration platform
@@ -172,5 +138,5 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 ---
 
 **Handoff complete.**  
-Three patches → build → launch.  
-The wick burns faster. Twenty is enough. Playful, not reckless.
+Three patches cover the high-leverage items from the list of ten.  
+The wick burns faster. Twenty is enough. Difficulty pays attention. Identity is unambiguous.
