@@ -10,45 +10,63 @@ People may do with the coins as they will. This is **not** a monetary product an
 
 ---
 
-## 1. Current Status
-
-| Item | Status |
-|------|--------|
-| Poetic subsidy (`GetBlockSubsidy`) | Already applied on master |
-| Docs (README / LAUNCH / FIZZLEWICK) | Updated on `mainnet-launch` |
-| Mainnet identity changes | Ready as a clean patch |
-| Patch file | `patches/fizzlewick_mainnet.patch` |
-| Binary rename / client branding | Optional |
-| Public seeds / explorer | Post-launch |
-
-**Branch URL:** https://github.com/fivemil/FIZZ/tree/mainnet-launch
-
----
-
-## 2. Fix chainparams.cpp (one command)
-
-The complete, correct `src/kernel/chainparams.cpp` is produced by applying the patch on top of master:
+## Quick Start (copy-paste)
 
 ```bash
 git fetch origin
 git checkout mainnet-launch
 git checkout master -- src/kernel/chainparams.cpp
 git apply patches/fizzlewick_mainnet.patch
+# verify it applied cleanly, then:
+git add src/kernel/chainparams.cpp
+git commit -m "mainnet: apply Fizzlewick chainparams"
 ```
 
-That is all. The patch changes only `CMainParams` + the shared genesis timestamp. All other networks (TestNet, RegTest, SigNet, factories) stay intact and the tree will compile.
+Then build and run (sections 3–6 below).
 
-### What the patch does
+---
 
-- Genesis timestamp → wizard line
-- Magic bytes → `f1 7a 7a 1f`
-- Default port → 8337
-- bech32 HRP → `fizz`
-- Distinct base58 prefixes
-- Easy initial difficulty (`0x207fffff`) so nonce=0 is valid
-- BIP features active from height 1
-- Cleared Bitcoin seeds, assumeutxo, min-chainwork, historical exceptions
-- `fPowAllowMinDifficultyBlocks = true`
+## 1. Current Status
+
+| Item | Status |
+|------|--------|
+| Poetic subsidy (`GetBlockSubsidy`) | Already on master |
+| Docs (README / LAUNCH / FIZZLEWICK) | Updated on this branch |
+| Mainnet identity changes | Clean patch ready |
+| Patch file | `patches/fizzlewick_mainnet.patch` |
+| Binary rename | Optional |
+| Public seeds / explorer | Post-launch |
+
+**Branch:** https://github.com/fivemil/FIZZ/tree/mainnet-launch
+
+---
+
+## 2. Apply the chainparams fix
+
+```bash
+git checkout mainnet-launch
+git checkout master -- src/kernel/chainparams.cpp   # restore full original
+git apply patches/fizzlewick_mainnet.patch          # apply Fizzlewick changes
+```
+
+The patch only touches `CMainParams` and the shared genesis timestamp.  
+All other networks (TestNet, RegTest, SigNet) and factory functions remain intact.
+
+### What the patch changes
+
+| Item | Value |
+|------|--------|
+| Genesis timestamp | Wizard line |
+| Magic bytes | `f1 7a 7a 1f` |
+| Default P2P port | `8337` |
+| bech32 HRP | `fizz` |
+| Address prefixes | Distinct (not Bitcoin) |
+| Initial difficulty | Easy (`0x207fffff`) — nonce 0 works |
+| BIP activation | From height 1 |
+| Seeds / assumeutxo / min-chainwork | Cleared |
+| `fPowAllowMinDifficultyBlocks` | `true` |
+
+After applying, commit the result on this branch (or open a PR to master).
 
 ---
 
@@ -58,14 +76,14 @@ That is all. The patch changes only `CMainParams` + the shared genesis timestamp
 cmake -B build -DBUILD_GUI=OFF -DWITH_ZMQ=OFF
 cmake --build build -j$(nproc)
 
-# Optional rename
-cp build/src/bitcoind   build/src/fizzlewickd
+# Optional but recommended
+cp build/src/bitcoind    build/src/fizzlewickd
 cp build/src/bitcoin-cli build/src/fizzlewick-cli
 ```
 
 ---
 
-## 4. Mainnet Configuration
+## 4. Mainnet config
 
 Create `~/.fizzlewick/fizzlewick.conf`:
 
@@ -78,23 +96,20 @@ port=8337
 daemon=1
 txindex=1
 fallbackfee=0.0001
-# addnode=YOUR.PUBLIC.NODE.IP   # once you have one
+# addnode=YOUR.PUBLIC.NODE.IP
 ```
 
-**Do not** put `regtest=1`.
+**Do not** set `regtest=1`.
 
 ---
 
-## 5. First Launch & Mine
+## 5. First launch & mine
 
 ```bash
-# Start
 ./fizzlewickd -datadir=$HOME/.fizzlewick -conf=$HOME/.fizzlewick/fizzlewick.conf
 
-# Check
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick getblockchaininfo
 
-# Wallet + blocks
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick createwallet "wizard"
 ADDR=$(./fizzlewick-cli -datadir=$HOME/.fizzlewick getnewaddress)
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick generatetoaddress 100 "$ADDR"
@@ -105,57 +120,53 @@ ADDR=$(./fizzlewick-cli -datadir=$HOME/.fizzlewick getnewaddress)
 
 ## 6. Mining / tpool
 
-Point tpool (or any sha256d miner) at:
-
 ```
 http://fizz:wick-of-the-ancients@127.0.0.1:8336
 ```
 
-Stratum port 3333 works as before once the node is serving templates.
+Stratum on port 3333 works once the node is serving templates.
 
 ---
 
-## 7. Network Parameters
+## 7. Network parameters
 
-| Parameter              | Value                          |
-|------------------------|--------------------------------|
-| Name                   | Fizzlewick                     |
-| Ticker                 | FIZZ                           |
-| Role                   | Public mainnet test platform   |
-| PoW                    | sha256d                        |
-| Magic bytes            | `f1 7a 7a 1f`                  |
-| Default P2P port       | 8337                           |
-| Default RPC port       | 8336                           |
-| bech32 HRP             | `fizz`                         |
-| Datadir                | `fizzlewick`                   |
-| Genesis timestamp      | Wizard line                    |
-| Initial difficulty     | Easy (`0x207fffff`)            |
-| Subsidy                | Poetic (base 50 ±20 triangle, period 2100 + slow decay) |
+| Parameter | Value |
+|-----------|--------|
+| Name | Fizzlewick |
+| Ticker | FIZZ |
+| Role | Public mainnet test platform |
+| PoW | sha256d |
+| Magic | `f1 7a 7a 1f` |
+| P2P port | 8337 |
+| RPC port | 8336 |
+| bech32 | `fizz` |
+| Datadir | `fizzlewick` |
+| Subsidy | Poetic (base 50 ±20 triangle, period 2100 + slow decay) |
 
 ---
 
-## 8. Verification Checklist
+## 8. Verification checklist
 
-- [ ] `git apply patches/fizzlewick_mainnet.patch` succeeds cleanly
-- [ ] Project compiles
+- [ ] `git apply patches/fizzlewick_mainnet.patch` succeeds with no rejects
+- [ ] Project compiles cleanly
 - [ ] Node starts without `-regtest`
-- [ ] `getblockchaininfo` shows chain = "main"
-- [ ] New address starts with `fizz1...`
-- [ ] Can generate blocks and see balance increase
-- [ ] tpool can connect and receive work
+- [ ] `getblockchaininfo` → `"chain": "main"`
+- [ ] New addresses begin with `fizz1...`
+- [ ] Blocks can be generated and balance increases
+- [ ] tpool connects and receives work
 
 ---
 
-## 9. Optional Follow-ups (post-launch)
+## 9. Optional follow-ups
 
-- Rename binaries to `fizzlewickd` / `fizzlewick-cli`
-- Add public seed nodes / DNS seeds
-- Re-mine a higher-difficulty genesis if desired
+- Rename binaries / man pages to `fizzlewickd` / `fizzlewick-cli`
+- Add public seed nodes and DNS seeds
+- Re-mine a harder genesis if desired
 - Simple block explorer
 
 ---
 
-## 10. Design Stance (do not change)
+## 10. Design stance (do not change)
 
 - Strong but basic Bitcoin-family consensus
 - Public test / play / integration platform
@@ -165,4 +176,5 @@ Stratum port 3333 works as before once the node is serving templates.
 ---
 
 **Handoff complete.**  
-One patch application and the chain is ready to launch.
+Apply the patch → build → launch.  
+Questions → repo owner (5mil).

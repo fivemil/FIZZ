@@ -116,10 +116,9 @@
  
          fDefaultConsistencyChecks = false;
          m_is_mockable_chain = false;
-@@ -190,35 +185,7 @@
  
-         m_assumeutxo_data = {
-             {
+-        m_assumeutxo_data = {
+-            {
 -                .height = 840'000,
 -                .hash_serialized = AssumeutxoHash{uint256{"a2a5521b1b5ab65f67818e5e8eccabb7171a517f9e2382208f77687310768f96"}},
 -                .m_chain_tx_count = 991032194,
@@ -149,9 +148,8 @@
 -                .m_chain_tx_count = 1429611231,
 -                .blockhash = uint256{"00000000000000000001595977e6000ce56129f5c9b4073e31ccc30b90b97da9"},
 -            }
-+                // empty for new chain
-             }
-         };
+-        };
++        m_assumeutxo_data = {}; // empty for new chain
  
          chainTxData = ChainTxData{
 -            // Data from RPC: getchaintxstats 4096 00000000000000000000748969ec33043c0e52a763c6dd5193861f559f2c72e3
