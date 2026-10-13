@@ -20,12 +20,15 @@ git checkout mainnet-launch
 git checkout master -- src/kernel/chainparams.cpp
 git apply patches/fizzlewick_mainnet.patch
 
-# 2. Coinbase maturity 20 (real UX improvement)
+# 2. Coinbase maturity 20
 git apply patches/fizzlewick_maturity.patch
 
+# 3. Abolish dust (the hilarious one)
+git apply patches/fizzlewick_dust.patch
+
 # Commit
-git add src/kernel/chainparams.cpp src/consensus/consensus.h
-git commit -m "mainnet: Fizzlewick identity, 2-min blocks, maturity 20"
+git add src/kernel/chainparams.cpp src/consensus/consensus.h src/policy/policy.h
+git commit -m "mainnet: Fizzlewick — 2-min blocks, maturity 20, no dust"
 ```
 
 Then build and run (sections 3–6).
@@ -40,6 +43,7 @@ Then build and run (sections 3–6).
 | Docs | Updated on this branch |
 | Mainnet identity + 2-min blocks | `patches/fizzlewick_mainnet.patch` |
 | Coinbase maturity = 20 | `patches/fizzlewick_maturity.patch` |
+| Dust abolished | `patches/fizzlewick_dust.patch` |
 | Binary rename | Optional |
 | Public seeds / explorer | Post-launch |
 
@@ -47,23 +51,29 @@ Then build and run (sections 3–6).
 
 ---
 
-## 2. The two real improvements over Bitcoin
+## 2. The three real improvements over Bitcoin
 
 ### A. 2-minute blocks
 ```cpp
 consensus.nPowTargetSpacing = 2 * 60;  // the wick burns faster
 ```
-Confirmations in minutes instead of tens of minutes.  
-Testing, mining, and everyday use stop feeling like watching paint dry.
+Confirmations in minutes instead of tens of minutes.
 
 ### B. Coinbase maturity = 20
 ```cpp
 // 20 blocks (~40 minutes at 2-min spacing). Bitcoin's 100 is pure friction for no good reason on a live chain.
 inline constexpr int COINBASE_MATURITY = 20;
 ```
-Bitcoin forces ~16 hours of waiting before newly mined coins can be spent.  
-Fizzlewick: ~40 minutes. Same security model for a test platform, dramatically better UX.  
-Hilarious in its simplicity — just change one constant and the chain becomes usable.
+Bitcoin: ~16 hours before newly mined coins are spendable.  
+Fizzlewick: ~40 minutes. Same model, usable chain.
+
+### C. Dust abolished (the hilarious simple one)
+```cpp
+// Even the tiniest spark may light a wick. Dust is not refuse on this chain.
+inline constexpr unsigned int DUST_RELAY_TX_FEE{1};
+```
+Bitcoin treats small outputs like toxic waste and rejects them.  
+Fizzlewick lets 1-sat outputs live. One constant. Suddenly the chain is actually fun to play with.
 
 ---
 
@@ -111,8 +121,6 @@ ADDR=$(./fizzlewick-cli -datadir=$HOME/.fizzlewick getnewaddress)
 ./fizzlewick-cli -datadir=$HOME/.fizzlewick getbalance
 ```
 
-(After 20 blocks the coinbase becomes spendable.)
-
 ---
 
 ## 6. Mining / tpool
@@ -131,6 +139,7 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 | Ticker | FIZZ |
 | Block time | **2 minutes** |
 | Coinbase maturity | **20 blocks** |
+| Dust relay fee | **1** (dust abolished) |
 | Magic | `f1 7a 7a 1f` |
 | P2P port | 8337 |
 | RPC port | 8336 |
@@ -141,12 +150,13 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 
 ## 8. Verification checklist
 
-- [ ] Both patches apply cleanly
+- [ ] All three patches apply cleanly
 - [ ] Compiles
 - [ ] `getblockchaininfo` → `"chain": "main"`
 - [ ] Addresses start with `fizz1...`
-- [ ] New blocks ~ every 2 minutes under load
+- [ ] Blocks ~ every 2 minutes under load
 - [ ] Coinbase spendable after 20 blocks
+- [ ] 1-sat outputs are accepted / relayed
 - [ ] tpool receives work
 
 ---
@@ -161,5 +171,5 @@ http://fizz:wick-of-the-ancients@127.0.0.1:8336
 ---
 
 **Handoff complete.**  
-Two patches → build → launch.  
-The wick burns faster. Twenty is enough.
+Three patches → build → launch.  
+The wick burns faster. Twenty is enough. Even the tiniest spark may light a wick.
