@@ -1,0 +1,64 @@
+name: Apply Fizzlewick subsidy
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/apply-fizzlewick-subsidy.yml'
+      - 'GetBlockSubsidy.snippet.cpp'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply poetic GetBlockSubsidy if still stock
+        run: |
+          set -e
+          if grep -q 'Fizzlewick poetic subsidy' src/validation.cpp; then
+            echo 'Already applied.'
+            exit 0
+          fi
+          if ! grep -q 'nSubsidy >>= halvings' src/validation.cpp; then
+            echo 'Unexpected GetBlockSubsidy shape; aborting.'
+            exit 1
+          fi
+          python3 << 'PY'
+          from pathlib import Path
+          path = Path('src/validation.cpp')
+          text = path.read_text()
+          # Match stock function (flexible whitespace)
+          import re
+          pattern = re.compile(
+              r'CAmount GetBlockSubsidy\(int nHeight, const Consensus::Params& consensusParams\)\s*\{.*?return nSubsidy;\s*\}',
+              re.DOTALL
+          )
+          snippet = Path('GetBlockSubsidy.snippet.cpp').read_text()
+          # Strip leading comment lines that are file-level only
+          # Keep the function itself
+          fn = snippet
+          if 'CAmount GetBlockSubsidy' in fn:
+              fn = fn[fn.index('CAmount GetBlockSubsidy'):]
+          m = pattern.search(text)
+          if not m:
+              raise SystemExit('Could not find stock GetBlockSubsidy')
+          path.write_text(text[:m.start()] + fn.rstrip() + '\n' + text[m.end():])
+          print('Patched src/validation.cpp')
+          PY
+          grep -n 'Fizzlewick poetic' src/validation.cpp | head -3
+
+      - name: Commit if changed
+        run: |
+          git config user.name 'fizzlewick-bot'
+          git config user.email 'fizzlewick@users.noreply.github.com'
+          git add src/validation.cpp
+          if git diff --staged --quiet; then
+            echo 'No changes to commit'
+          else
+            git commit -m 'consensus: Fizzlewick poetic GetBlockSubsidy (integer triangle + decay)'
+            git push
+          fi
