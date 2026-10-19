@@ -16,7 +16,8 @@ inline constexpr unsigned int MAX_BLOCK_WEIGHT{4'000'000};
 /** The maximum allowed number of signature check operations in a block (network rule) */
 inline constexpr int64_t MAX_BLOCK_SIGOPS_COST{80'000};
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
-inline constexpr int COINBASE_MATURITY = 100;
+// 20 blocks (~40 minutes at 2-min spacing). Bitcoin's 100 is pure friction for no good reason on a live chain.
+inline constexpr int COINBASE_MATURITY = 20;
 
 inline constexpr int WITNESS_SCALE_FACTOR = 4;
 
