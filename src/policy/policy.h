@@ -65,7 +65,8 @@ inline constexpr unsigned int MAX_STANDARD_SCRIPTSIG_SIZE{1650};
  * standard and should be done with care and ideally rarely. It makes sense to
  * only increase the dust limit after prior releases were already not creating
  * outputs below the new threshold */
-inline constexpr unsigned int DUST_RELAY_TX_FEE{3000};
+// Playful but not reckless. Far lower than Bitcoin, still high enough to make mass dusting expensive.
+inline constexpr unsigned int DUST_RELAY_TX_FEE{200};
 /** Default for -minrelaytxfee, minimum relay fee for transactions */
 inline constexpr unsigned int DEFAULT_MIN_RELAY_TX_FEE{100};
 /** Maximum number of transactions per cluster (default) */
